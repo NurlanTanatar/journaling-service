@@ -1,6 +1,7 @@
 {{ define "Base" }}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,8 +9,22 @@
     <script src="/static/htmx.js" type="text/javascript"></script>
     <title>Hello world</title>
 </head>
+
 <body>
-    <p class="text-5xl" >Hellow, world!</p>
+    <p class="text-5xl">Hellow, world!</p>
+    <div class="max-w-screen-md mx-auto mt-8">
+        <div class="flex justify-between items-center">
+            {{ template "TotalCount" dict "Count" .Count "SwapOOB" false }}
+            {{ template "CompletedCount" dict "Count" .CompletedCount "SwapOOB" false }}
+        </div>
+        
+        {{ template "Form" }}
+
+        <div id="items" class="space-y-2.5 mt-4">
+            {{ range .Items }}{{ template "Item" dict "Item" . "SwapOOB" false }}{{ end }}
+        </div>
+    </div>
 </body>
+
 </html>
 {{ end }}

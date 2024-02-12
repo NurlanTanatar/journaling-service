@@ -1,6 +1,9 @@
 package main
 
-import "context"
+import (
+	"context"
+	"log"
+)
 
 type Item struct {
 	ID        int
@@ -9,14 +12,14 @@ type Item struct {
 }
 
 type Tasks struct {
-	Items          []int
+	Items          []Item
 	Count          int
 	CompletedCount int
 }
 
 func fetchTasks() ([]Item, error) {
 	var items []Item
-	rows, err := DB.Query(`select id, title, completed from tasks order by position;`)
+	rows, err := DB.Query(`select id, title, completed from journal order by position;`)
 	if err != nil {
 		return []Item{}, err
 	}
@@ -34,7 +37,7 @@ func fetchTasks() ([]Item, error) {
 
 func fetchTask(ID int) (Item, error) {
 	var item Item
-	err := DB.QueryRow(`select id, title, completed from tasks where id = (?);`, ID).Scan(&item.ID, &item.Title, &item.Completed)
+	err := DB.QueryRow(`select id, title, completed from journal where id = (?);`, ID).Scan(&item.ID, &item.Title, &item.Completed)
 	if err != nil {
 		return Item{}, err
 	}
@@ -43,7 +46,7 @@ func fetchTask(ID int) (Item, error) {
 
 func updateTask(ID int, title string) (Item, error) {
 	var item Item
-	err := DB.QueryRow(`update tasks set title = (?) where id = (?) returning id, title, completed;`, title, ID).Scan(&item.ID, &item.Title, &item.Completed)
+	err := DB.QueryRow(`update journal set title = (?) where id = (?) returning id, title, completed;`, title, ID).Scan(&item.ID, &item.Title, &item.Completed)
 	if err != nil {
 		return Item{}, err
 	}
@@ -52,7 +55,16 @@ func updateTask(ID int, title string) (Item, error) {
 
 func fetchCount() (int, error) {
 	var count int
-	err := DB.QueryRow(`select count(*) from tasks;`).Scan(&count)
+	err := DB.QueryRow(`select count(*) from journal;`).Scan(&count)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
+
+func fetchCompletedCount() (int, error) {
+	var count int
+	err := DB.QueryRow(`select count(*) from journal where completed=true;`).Scan(&count)
 	if err != nil {
 		return count, err
 	}
@@ -65,7 +77,8 @@ func insertTask(title string) (Item, error) {
 		return Item{}, err
 	}
 	var id int
-	err = DB.QueryRow(`insert into tasks (title, position) values (?, ?) returning id;`, title, count).Scan(&id)
+	log.Printf("inserting: %v, %v", title, count)
+	err = DB.QueryRow(`insert into journal (title, position) values ($1, $2) returning id`, title, count).Scan(&id)
 	if err != nil {
 		return Item{}, err
 	}
@@ -74,11 +87,11 @@ func insertTask(title string) (Item, error) {
 }
 
 func deleteTask(ctx context.Context, ID int) error {
-	_, err := DB.Exec("delete from tasks where id = (?)", ID)
+	_, err := DB.Exec("delete from journal where id = (?)", ID)
 	if err != nil {
 		return err
 	}
-	rows, err := DB.Query("select id from tasks order by position")
+	rows, err := DB.Query("select id from journal order by position")
 	if err != nil {
 		return err
 	}
@@ -97,7 +110,7 @@ func deleteTask(ctx context.Context, ID int) error {
 	}
 	defer tx.Rollback()
 	for idx, id := range ids {
-		_, err := DB.Exec("update tasks set position = (?) where id = (?)", idx, id)
+		_, err := DB.Exec("update journal set position = (?) where id = (?)", idx, id)
 		if err != nil {
 			return err
 		}
@@ -116,7 +129,7 @@ func orderTasks(ctx context.Context, values []int) error {
 	}
 	defer tx.Rollback()
 	for i, v := range values {
-		_, err := tx.Exec("update tasks set position = (?) where id = (?)", i, v)
+		_, err := tx.Exec("update journal set position = (?) where id = (?)", i, v)
 		if err != nil {
 			return err
 		}
@@ -129,7 +142,7 @@ func orderTasks(ctx context.Context, values []int) error {
 
 func toggleTask(ID int) (Item, error) {
 	var item Item
-	err := DB.QueryRow("update tasks set completed = case when completed = 1 then 0 else 1 end where id = (?) returning id, title, completed", ID).Scan(&item.ID, &item.Title, &item.Completed)
+	err := DB.QueryRow("update journal set completed = case when completed = true then false else true end where id = ($1) returning id, title, completed", ID).Scan(&item.ID, &item.Title, &item.Completed)
 	if err != nil {
 		return Item{}, err
 	}
