@@ -37,7 +37,7 @@ func fetchTasks() ([]Item, error) {
 
 func fetchTask(ID int) (Item, error) {
 	var item Item
-	err := DB.QueryRow(`select id, title, completed from journal where id = (?);`, ID).Scan(&item.ID, &item.Title, &item.Completed)
+	err := DB.QueryRow(`select id, title, completed from journal where id = ($1);`, ID).Scan(&item.ID, &item.Title, &item.Completed)
 	if err != nil {
 		return Item{}, err
 	}
@@ -46,7 +46,7 @@ func fetchTask(ID int) (Item, error) {
 
 func updateTask(ID int, title string) (Item, error) {
 	var item Item
-	err := DB.QueryRow(`update journal set title = (?) where id = (?) returning id, title, completed;`, title, ID).Scan(&item.ID, &item.Title, &item.Completed)
+	err := DB.QueryRow(`update journal set title = ($1) where id = ($2) returning id, title, completed;`, title, ID).Scan(&item.ID, &item.Title, &item.Completed)
 	if err != nil {
 		return Item{}, err
 	}
@@ -87,7 +87,7 @@ func insertTask(title string) (Item, error) {
 }
 
 func deleteTask(ctx context.Context, ID int) error {
-	_, err := DB.Exec("delete from journal where id = (?)", ID)
+	_, err := DB.Exec("delete from journal where id = ($1)", ID)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func deleteTask(ctx context.Context, ID int) error {
 	}
 	defer tx.Rollback()
 	for idx, id := range ids {
-		_, err := DB.Exec("update journal set position = (?) where id = (?)", idx, id)
+		_, err := DB.Exec("update journal set position = ($1) where id = ($2)", idx, id)
 		if err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ func orderTasks(ctx context.Context, values []int) error {
 	}
 	defer tx.Rollback()
 	for i, v := range values {
-		_, err := tx.Exec("update journal set position = (?) where id = (?)", i, v)
+		_, err := tx.Exec("update journal set position = ($1) where id = ($2)", i, v)
 		if err != nil {
 			return err
 		}
