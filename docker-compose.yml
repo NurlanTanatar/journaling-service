@@ -1,7 +1,6 @@
 version: '3.1'
 
 services:
-
   db:
     image: postgres
     restart: always
@@ -15,3 +14,21 @@ services:
       - 5432:5432
     volumes:
       -  /var/lib/postgresql/data/postgresql:/var/lib/postgresql/datat
+    networks:
+      - common_network
+  service:
+    image: journaling-service:main
+    restart: always
+    environment:
+      DB_PASSWORD: wh1t34ox
+      DB_USER: postgres
+      DB_DBNAME: journal
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - 3000:3000
+    networks:
+      - common_network
+networks:
+  common_network:
+    driver: bridge

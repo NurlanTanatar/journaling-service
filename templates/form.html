@@ -117,10 +117,12 @@
           </div>
         </form>
       {{ else }}
+      <div class="grid grid-cols-3 gap-4">
         <p class="title">{{ .Item.Title }}</p>
         <p class="dateStart font-bold">{{ .Item.DateStart.Format "2006-01-02 15:04:05" }}</p>
         <p class="dateEnd font-bold">{{ .Item.DateEnd.Format "2006-01-02 15:04:05" }}</p>
         <!-- <p class="criticality">{{ .Item.Criticality }}</p> -->
+      </div>
       {{ end }}
     </div>
 
