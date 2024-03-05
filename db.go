@@ -53,9 +53,17 @@ func closeDB() error {
 }
 
 func setupDB() error {
-	_, err := DB.Exec(`create table if not exists journal(id serial primary key, title text, completed boolean default false, position integer);`)
+	_, err := DB.Exec(`create table if not exists journal(id serial primary key, 
+														  title text, 
+														  completed boolean default false, 
+														  position integer, 
+														  criticality integer,
+														  dateStart timestamp,
+														  dateEnd timestamp
+					 									);`)
+
 	if err != nil {
-		return nil
+		return err
 	}
 	return nil
 }

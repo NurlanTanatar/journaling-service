@@ -3,9 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 )
 
 // TODO: save svg as asset
@@ -23,15 +20,14 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
-	r.Get("/", handleGetTasks)
-	r.Post("/tasks", handleCreateTask)
-	r.Put("/tasks/{id}/toggle", handleToggleTask)
-	r.Delete("/tasks/{id}", handleDeleteTask)
-	r.Get("/tasks/{id}/edit", handleEditTask)
-	r.Put("/tasks/{id}", handleUpdateTask)
-	r.Put("/tasks", handleOrderTasks)
+	r := http.NewServeMux()
+	r.Handle("GET /static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	r.HandleFunc("GET /", handleGetIncidents)
+	r.HandleFunc("POST /tasks", handleCreateIncident)
+	r.HandleFunc("PUT /tasks/{id}/toggle", handleToggleIncident)
+	r.HandleFunc("DELETE /tasks/{id}", handleDeleteIncident)
+	r.HandleFunc("GET /tasks/{id}/edit", handleEditIncident)
+	r.HandleFunc("PUT /tasks/{id}", handleUpdateIncident)
+	r.HandleFunc("PUT /tasks", handleOrderIncidents)
 	http.ListenAndServe(":3000", r)
 }

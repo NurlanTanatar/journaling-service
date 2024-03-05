@@ -4,12 +4,15 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-
-	"github.com/go-chi/chi"
+	"time"
 )
 
-func handleGetTasks(w http.ResponseWriter, _ *http.Request) {
-	items, err := fetchTasks()
+var (
+	layout = "2006-01-02T15:04"
+)
+
+func handleGetIncidents(w http.ResponseWriter, _ *http.Request) {
+	items, err := fetchIncidents()
 	if err != nil {
 		log.Printf("error fetching tasks: %v", err)
 		return
@@ -23,7 +26,7 @@ func handleGetTasks(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		log.Printf("error fetching completedCount: %v", err)
 	}
-	data := Tasks{
+	data := Incidents{
 		Items:          items,
 		Count:          count,
 		CompletedCount: completedCount,
@@ -31,13 +34,27 @@ func handleGetTasks(w http.ResponseWriter, _ *http.Request) {
 	tmpl.ExecuteTemplate(w, "Base", data)
 }
 
-func handleCreateTask(w http.ResponseWriter, r *http.Request) {
+func handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 	title := r.FormValue("title")
+	criticality, err := strconv.Atoi(r.FormValue("criticality"))
+	if err != nil {
+		log.Printf("error parsing and getting criticalty %v", err)
+	}
+	dateStart, err := time.Parse(layout, r.FormValue("date-start"))
+	if err != nil {
+		log.Printf("error parsing and getting dateStart %v", err)
+	}
+	dateEnd, err := time.Parse(layout, r.FormValue("date-end"))
+	if err != nil {
+		log.Printf("error parsing and getting dateEnd %v", err)
+	}
+
 	if title == "" {
 		tmpl.ExecuteTemplate(w, "Form", nil)
 		return
 	}
-	item, err := insertTask(title)
+
+	item, err := insertIncident(title, criticality, dateStart, dateEnd)
 	if err != nil {
 		log.Printf("error inserting task: %v", err)
 		return
@@ -53,13 +70,13 @@ func handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "TotalCount", map[string]any{"Count": count, "SwapOOB": true})
 }
 
-func handleToggleTask(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func handleToggleIncident(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		log.Printf("error parsing id into int %v", err)
 		return
 	}
-	_, err = toggleTask(id)
+	_, err = toggleIncident(id)
 	if err != nil {
 		log.Printf("error toggling task %v", err)
 		return
@@ -72,13 +89,13 @@ func handleToggleTask(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "CompletedCount", map[string]any{"Count": completedCount, "SwapOOB": true})
 }
 
-func handleDeleteTask(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func handleDeleteIncident(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		log.Printf("error parsing id into int %v", err)
 		return
 	}
-	err = deleteTask(r.Context(), id)
+	err = deleteIncident(r.Context(), id)
 	if err != nil {
 		log.Printf("error deleting task %v", err)
 		return
@@ -95,13 +112,13 @@ func handleDeleteTask(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "CompletedCount", map[string]any{"Count": completedCount, "SwapOOB": true})
 }
 
-func handleEditTask(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func handleEditIncident(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		log.Printf("error parsing id into int %v", err)
 		return
 	}
-	task, err := fetchTask(id)
+	task, err := fetchIncident(id)
 	if err != nil {
 		log.Printf("error fetching task with id %v", err)
 		return
@@ -109,8 +126,8 @@ func handleEditTask(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "Item", map[string]any{"Item": task, "Editing": true})
 }
 
-func handleUpdateTask(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func handleUpdateIncident(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		log.Printf("error parsing id into int %v", err)
 		return
@@ -119,7 +136,7 @@ func handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	if title == "" {
 		return
 	}
-	task, err := updateTask(id, title)
+	task, err := updateIncident(id, title)
 	if err != nil {
 		log.Printf("error updating task with id %v", err)
 		return
@@ -127,7 +144,7 @@ func handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "Item", map[string]any{"Item": task})
 }
 
-func handleOrderTasks(_ http.ResponseWriter, r *http.Request) {
+func handleOrderIncidents(_ http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Printf("error parsing form %v", err)
@@ -146,7 +163,7 @@ func handleOrderTasks(_ http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	err = orderTasks(r.Context(), values)
+	err = orderIncidents(r.Context(), values)
 	if err != nil {
 		log.Printf("error ordering tasks %v", err)
 		return
