@@ -17,7 +17,7 @@ services:
     networks:
       - common_network
   service:
-    image: journaling-service:main
+    image: incident:main
     restart: always
     environment:
       DB_PASSWORD: wh1t34ox
